@@ -1,0 +1,4 @@
+# Crawler dependencies
+# pip install -r requirements/crawl.txt
+curl_cffi>=0.15
+beautifulsoup4>=4.12
