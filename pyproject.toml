@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hltv-crawler"
+version = "0.1.0"
+description = "HLTV CS2 match data crawler — scrape matches, maps, player stats to SQLite"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+
+authors = [
+    { name = "kongerly" },
+]
+
+keywords = [
+    "hltv", "cs2", "csgo", "counter-strike", "esports",
+    "crawler", "scraper", "match-data", "sqlite",
+]
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Games/Entertainment",
+    "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+dependencies = [
+    "curl_cffi>=0.15",
+    "beautifulsoup4>=4.12",
+]
+
+[project.urls]
+Homepage = "https://github.com/kongerly/hltv-crawler"
+Repository = "https://github.com/kongerly/hltv-crawler"
+Issues = "https://github.com/kongerly/hltv-crawler/issues"
+
+[project.scripts]
+hltv-crawler = "crawl:main"
+
+[tool.setuptools.packages.find]
+include = ["scraper*", "parser*", "storage*"]

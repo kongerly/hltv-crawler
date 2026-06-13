@@ -1,0 +1,2 @@
+# Dev dependencies for hltv-crawler
+pytest>=7.0

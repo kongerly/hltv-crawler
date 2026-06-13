@@ -13,17 +13,23 @@ env/
 *.db-shm
 *.db-wal
 
-# Notebooks
-.ipynb_checkpoints/
-
 # OS / editor files
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
 
-# Build artifacts
+# Build and test artifacts
 .pytest_cache/
 .coverage
+htmlcov/
 dist/
 build/
+*.egg-info/
+
+# Raw data cache (auto-generated)
+data/raw/
+data/exports/
+
+# Temporary test files
+_test_*

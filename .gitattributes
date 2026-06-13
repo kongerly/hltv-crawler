@@ -1,0 +1,18 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Python source
+*.py text diff=python
+
+# Markdown
+*.md text
+
+# Configuration
+*.toml text
+*.txt text
+*.cfg text
+
+# Binary
+*.png binary
+*.jpg binary
+*.db binary
