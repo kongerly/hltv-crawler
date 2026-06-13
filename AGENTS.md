@@ -15,6 +15,8 @@
 | 项目 | 内容 |
 |------|------|
 | 仓库 | kongerly/hltv-crawler |
+| CI | 📝 待配置（GitHub Actions） |
+| 代码检查 | 📝 待配置（pre-commit + ruff） |
 | PyPI | https://pypi.org/project/hltv-crawler/ |
 | 目标 | HLTV CS2 比赛数据爬虫 —— 采集、解析、存储到 SQLite |
 | Python 版本 | 3.10+（开发环境 3.13.4） |
@@ -27,6 +29,7 @@
 |------|------|------|
 | README | ✅ OK | 含安装、使用、API 示例 |
 | AGENTS.md | ✅ OK | 当前文件 |
+| LEARNING_ROADMAP.md | ✅ OK | 零基础学习路线图 |
 | pyproject.toml | ✅ OK | 已发布到 PyPI v0.1.0 |
 | .gitignore | ✅ OK | Python + SQLite + OS 常见忽略项 |
 | .gitattributes | ✅ OK | LF 规范化 + 语言标记 |
@@ -35,6 +38,53 @@
 | 数据解析 (parser/) | ✅ OK | mapholder 解析 + 列序精确 player stats |
 | 入口 (crawl.py) | ✅ OK | argparse CLI，支持 --start-date/--end-date/--event/--resume |
 | 测试 (tests/) | 📝 待开始 | 需补充 pytest 测试 |
+
+## CI/CD 规划
+
+### GitHub Actions
+
+每次 push 到 `main` 或打开 PR 时自动运行：
+
+```yaml
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: pip install -r deps/crawl.txt deps/dev.txt
+      - run: pytest tests/ -v
+```
+
+### pre-commit
+
+提交前自动检查：
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+配置文件 `.pre-commit-config.yaml`：
+
+```yaml
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.0
+    hooks:
+      - id: ruff
+      - id: ruff-format
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+```
 
 ## 编码规范
 
@@ -45,10 +95,18 @@
 
 ## 待办
 
-- [ ] 补充 pytest 测试（解析逻辑 + 核心流程）
-- [ ] GitHub Actions CI 配置
-- [ ] pre-commit + ruff 代码检查
-- [ ] 支持 Python 3.9 兼容
+### ✅ 已完成
+- [x] pytest 测试 — 29 个用例覆盖解析 + CRUD
+- [x] PyPI 发布 v0.1.0
+- [x] 项目元文件（.gitignore, .gitattributes, AGENTS.md, LEARNING_ROADMAP.md）
+
+### 📝 待开发
+- [ ] GitHub Actions CI — push 时自动跑 pytest
+- [ ] pre-commit + ruff — 提交前自动检查代码格式
+- [ ] Python 3.9 兼容性验证
+- [ ] 增量爬取（按 match_id 去重，只爬新比赛）
+- [ ] `--output json` 参数支持
+- [ ] 更多反爬策略（代理池、随机 UA）
 
 ## 技术选型
 
