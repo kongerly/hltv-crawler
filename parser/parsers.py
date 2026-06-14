@@ -31,6 +31,39 @@ def parse_events_page(html: str) -> list[dict[str, Any]]:
     return events
 
 
+
+def _parse_event_date(date_text: str, event_name: str) -> tuple[Optional[str], Optional[str]]:
+    if not date_text:
+        return None, None
+    year_match = re.search(r"\b(20\d{2})\b", event_name)
+    if not year_match:
+        return None, None
+    year = year_match.group(1)
+    cleaned = re.sub(r"\b(\d+)(st|nd|rd|th)\b", r"\1", date_text).strip()
+    parts = re.split(r"\s*[\u2013\u2014\-]\s*", cleaned, maxsplit=1)
+    if not parts:
+        return None, None
+    start_str = parts[0].strip()
+    try:
+        start_dt = datetime.strptime(f"{start_str} {year}", "%b %d %Y")
+        start_date = start_dt.strftime("%Y-%m-%d")
+    except ValueError:
+        return None, None
+    end_date = None
+    if len(parts) > 1:
+        end_str = parts[1].strip()
+        try:
+            end_dt = datetime.strptime(f"{end_str} {year}", "%b %d %Y")
+            end_date = end_dt.strftime("%Y-%m-%d")
+        except ValueError:
+            try:
+                end_dt = datetime.strptime(f"{start_dt.month} {end_str} {year}", "%m %d %Y")
+                end_date = end_dt.strftime("%Y-%m-%d")
+            except ValueError:
+                pass
+    return start_date, end_date
+
+
 def _parse_event(container_or_link, seen_ids, events):
     if container_or_link.name == "a":
         link = container_or_link
@@ -55,11 +88,12 @@ def _parse_event(container_or_link, seen_ids, events):
     if date_match:
         s = date_match.start()
         date_text = full_text[s:].split("$")[0].split("Teams")[0].split("Prize")[0].strip()
+    start_date, end_date = _parse_event_date(date_text, event_name)
     events.append({
         "event_id": event_id,
         "event_name": event_name,
-        "start_date": date_text if date_text else None,
-        "end_date": None,
+        "start_date": start_date,
+        "end_date": end_date,
     })
 def parse_results_page(html: str) -> list[dict[str, Any]]:
     """Parse the /results page, return list of match dicts.

@@ -311,21 +311,42 @@ class HltvOrchestrator:
     # ------------------------------------------------------------------
 
     def _resolve_event_by_name(self, event_name: str) -> Optional[int]:
+        # 1) Try exact match first
         rows = self._db.execute(
-            "SELECT event_id FROM events WHERE event_name LIKE ?",
-            (f"%{event_name}%",)
-        )
-        if rows:
-            if len(rows) > 1:
-                logger.info("Multiple events match '%s', picking first", event_name)
-            return rows[0]["event_id"]
-        self.scrape_and_store_events(force=False)
-        rows = self._db.execute(
-            "SELECT event_id FROM events WHERE event_name LIKE ?",
-            (f"%{event_name}%",)
+            "SELECT event_id FROM events WHERE event_name = ?",
+            (event_name,)
         )
         if rows:
             return rows[0]["event_id"]
+
+        # 2) Try fuzzy LIKE match
+        rows = self._db.execute(
+            "SELECT event_id, event_name, start_date FROM events WHERE event_name LIKE ?",
+            (f"%{event_name}%",)
+        )
+        if not rows:
+            self.scrape_and_store_events(force=False)
+            rows = self._db.execute(
+                "SELECT event_id, event_name, start_date FROM events WHERE event_name LIKE ?",
+                (f"%{event_name}%",)
+            )
+
+        if not rows:
+            logger.warning("No events found matching '%s'", event_name)
+            return None
+
+        if len(rows) == 1:
+            return rows[0]["event_id"]
+
+        # 3) Multiple matches — log them with IDs and dates, do not guess
+        logger.warning("Multiple events match '%s':", event_name)
+        for r in rows:
+            ev_date = r.get("start_date") or "no date"
+            logger.warning("  [ID=%d] %s (start_date: %s)", r["event_id"], r["event_name"], ev_date)
+        logger.error(
+            "Use --event-id with one of the IDs above, or include the year in the name "
+            "(e.g. --event "%s <year>")", event_name
+        )
         return None
 
     def _resolve_team_by_name(self, team_name: str) -> Optional[int]:

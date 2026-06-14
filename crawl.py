@@ -86,7 +86,10 @@ def main() -> None:
             if event_id is None and args.event:
                 event_id = orch._resolve_event_by_name(args.event)
                 if event_id is None:
-                    logger.error("Cannot find event matching '%s'", args.event)
+                    logger.error(
+                        "Cannot resolve event '%s'. "
+                        "Check logs above for matching events or use --event-id.", args.event
+                    )
                     sys.exit(1)
                 logger.info("Resolved event name '%s' -> ID %d", args.event, event_id)
 

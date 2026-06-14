@@ -45,6 +45,19 @@ hltv-crawler --start-date=2025-01-01 --end-date=2025-06-01
 # Filter by event
 hltv-crawler --event="IEM"
 
+# Scrape a specific event by ID (no name ambiguity)
+hltv-crawler --event-id 7732
+
+# Scrape a specific team at an event by ID
+hltv-crawler --event-id 7732 --team-id 4608
+
+# Scrape a specific player at an event by ID
+hltv-crawler --event-id 7732 --player-id 12345
+
+# Scrape by event/team/player name (resolves to ID)
+hltv-crawler --event "IEM Cologne" --team "Spirit"
+hltv-crawler --event "IEM Cologne" --player "donk"
+
 # Resume an interrupted crawl
 hltv-crawler --resume
 
@@ -94,15 +107,36 @@ Raw HTML cached to disk. Safe to delete — will be re-fetched on next run.
 ## All CLI Options
 
 ```
---force               Ignore disk cache, re-fetch all pages
---max-matches N       Max match details to scrape (default: all)
---max-pages N         Max result pages to scrape, 50 matches/page (default: 20)
+--force                 Ignore disk cache, re-fetch all pages
+--max-matches N         Max match details to scrape (default: all)
+--max-pages N           Max result pages to scrape (50 matches/page, default: 20)
 --start-date YYYY-MM-DD  Only matches on or after this date
 --end-date YYYY-MM-DD    Only matches on or before this date
---event NAME          Only matches from this event (substring match)
---event-id ID         Only matches from this event ID
---resume              Resume from last saved progress
+--event NAME            Filter by event name in pipeline mode, or resolve
+                        to event ID for targeted scraping
+                        (prefers exact match; on multiple matches
+                         lists all and exits with guidance)
+--event-id ID           Scrape a specific event by ID (no ambiguity)
+--team-id ID            Scrape a specific team at an event (requires --event-id)
+--player-id ID          Scrape a specific player at an event (requires --event-id)
+--team NAME             Resolve and scrape team by name (requires --event/--event-id)
+--player NAME           Resolve and scrape player by name (requires --event/--event-id)
+--resume                Resume from last saved progress
 ```
+
+Targeted scraping modes:
+
+- \`--event-id <ID>\` -- scrape all matches for a specific tournament
+- \`--event-id <ID> --team-id <ID>\` -- scrape one team's matches at a tournament
+- \`--event-id <ID> --player-id <ID>\` -- scrape one player's matches at a tournament
+- \`--event <NAME>\` -- resolve event name to ID and scrape all its matches
+- \`--event <NAME> --team <NAME>\` -- resolve both by name and scrape team at event
+- \`--event <NAME> --player <NAME>\` -- resolve both by name and scrape player at event
+
+> **Note**: When \`--event\` matches multiple tournaments (e.g. "IEM Dallas" matches
+> both "IEM Dallas 2024" and "IEM Dallas 2025"), the tool lists all matches and
+> exits with guidance. Include the year in the name or use \`--event-id\` to
+> disambiguate.
 
 ## Use Cases
 
