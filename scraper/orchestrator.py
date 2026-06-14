@@ -6,7 +6,7 @@ from datetime import datetime, date, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from scraper.event_scraper import scrape_events
+from scraper.event_scraper import scrape_events, scrape_event_matches
 from scraper.http_client import HltvHttpClient
 from scraper.match_scraper import scrape_match_detail, scrape_results_page
 from scraper.team_scraper import scrape_ranking_players, scrape_team_rankings
@@ -305,6 +305,173 @@ class HltvOrchestrator:
         logger.info("Upserted %d players from ranking page", len(players))
         return len(players)
 
+
+    # ------------------------------------------------------------------
+    # Name resolution helpers
+    # ------------------------------------------------------------------
+
+    def _resolve_event_by_name(self, event_name: str) -> Optional[int]:
+        rows = self._db.execute(
+            "SELECT event_id FROM events WHERE event_name LIKE ?",
+            (f"%{event_name}%",)
+        )
+        if rows:
+            if len(rows) > 1:
+                logger.info("Multiple events match '%s', picking first", event_name)
+            return rows[0]["event_id"]
+        self.scrape_and_store_events(force=False)
+        rows = self._db.execute(
+            "SELECT event_id FROM events WHERE event_name LIKE ?",
+            (f"%{event_name}%",)
+        )
+        if rows:
+            return rows[0]["event_id"]
+        return None
+
+    def _resolve_team_by_name(self, team_name: str) -> Optional[int]:
+        rows = self._db.execute(
+            "SELECT team_id FROM teams WHERE team_name LIKE ?",
+            (f"%{team_name}%",)
+        )
+        if rows:
+            return rows[0]["team_id"]
+        self.scrape_and_store_team_rankings(force=False)
+        rows = self._db.execute(
+            "SELECT team_id FROM teams WHERE team_name LIKE ?",
+            (f"%{team_name}%",)
+        )
+        if rows:
+            return rows[0]["team_id"]
+        return None
+
+    def _resolve_player_by_name(self, player_name: str) -> Optional[int]:
+        rows = self._db.execute(
+            "SELECT player_id FROM players WHERE player_name LIKE ? OR nickname LIKE ?",
+            (f"%{player_name}%", f"%{player_name}%")
+        )
+        if rows:
+            return rows[0]["player_id"]
+        self.scrape_and_store_all_ranking_players(force=False)
+        rows = self._db.execute(
+            "SELECT player_id FROM players WHERE player_name LIKE ? OR nickname LIKE ?",
+            (f"%{player_name}%", f"%{player_name}%")
+        )
+        if rows:
+            return rows[0]["player_id"]
+        return None
+
+
+    # ------------------------------------------------------------------
+    # Targeted scraping: event / team / player
+    # ------------------------------------------------------------------
+
+    def _scrape_and_store_matches(self, match_entries: list[dict[str, Any]],
+                                   force: bool = False) -> dict[str, int]:
+        counts = {'matches_found': len(match_entries), 'detail_scraped': 0, 'maps': 0, 'player_stats': 0}
+        for m in match_entries:
+            try:
+                detail = self.scrape_and_store_match_detail(
+                    m['match_id'], match_path=m.get('match_url', ''), force=force,
+                )
+                counts['maps'] += len(detail.get('maps', []))
+                counts['player_stats'] += len(detail.get('players', []))
+                counts['detail_scraped'] += 1
+            except Exception as exc:
+                logger.warning('Failed to scrape match %%d: %%s', m['match_id'], exc)
+        return counts
+
+    def scrape_event_by_id(self, event_id: int, force: bool = False,
+                            max_matches: int | None = None) -> dict[str, int]:
+        ev = self._db.get_event(event_id)
+        if not ev:
+            self.scrape_and_store_events(force=force)
+            ev = self._db.get_event(event_id)
+        if ev:
+            logger.info('Target event: %%s (ID=%%d)', ev['event_name'], event_id)
+        else:
+            logger.info('Scraping event ID=%%d', event_id)
+
+        matches = scrape_event_matches(self._client, event_id, force=force)
+        logger.info('Found %%d matches for event %%d', len(matches), event_id)
+
+        detail_matches = matches[:max_matches] if max_matches is not None else matches
+        return self._scrape_and_store_matches(detail_matches, force=force)
+
+    def scrape_team_at_event(self, team_id: int, event_id: int,
+                              force: bool = False) -> dict[str, int]:
+        team = self._db.get_team(team_id)
+        team_name = team['team_name'] if team else str(team_id)
+        if not team:
+            self.scrape_and_store_team_rankings(force=force)
+            team = self._db.get_team(team_id)
+            team_name = team['team_name'] if team else str(team_id)
+
+        logger.info('Target: team "%%s" (ID=%%d) at event %%d', team_name, team_id, event_id)
+
+        matches = scrape_event_matches(self._client, event_id, force=force)
+        logger.info('Found %%d matches for event %%d, checking for team %%s',
+                    len(matches), event_id, team_name)
+
+        counts = {'matches_found': len(matches), 'detail_scraped': 0,
+                  'team_matches': 0, 'maps': 0, 'player_stats': 0}
+        for m in matches:
+            try:
+                detail = self.scrape_and_store_match_detail(
+                    m['match_id'], match_path=m.get('match_url', ''), force=force,
+                )
+                counts['maps'] += len(detail.get('maps', []))
+                counts['player_stats'] += len(detail.get('players', []))
+                counts['detail_scraped'] += 1
+
+                match_row = self._db.get_match(m['match_id'])
+                if match_row and (match_row['team1_id'] == team_id
+                                  or match_row['team2_id'] == team_id):
+                    counts['team_matches'] += 1
+            except Exception as exc:
+                logger.warning('Failed to scrape match %%d: %%s', m['match_id'], exc)
+
+        logger.info('Team %%s played %%d matches at event %%d',
+                    team_name, counts['team_matches'], event_id)
+        return counts
+
+    def scrape_player_at_event(self, player_id: int, event_id: int,
+                                force: bool = False) -> dict[str, int]:
+        player = self._db.get_player(player_id)
+        player_name = player['player_name'] if player else str(player_id)
+        if not player:
+            self.scrape_and_store_all_ranking_players(force=force)
+            player = self._db.get_player(player_id)
+            player_name = player['player_name'] if player else str(player_id)
+
+        logger.info('Target: player "%%s" (ID=%%d) at event %%d',
+                    player_name, player_id, event_id)
+
+        matches = scrape_event_matches(self._client, event_id, force=force)
+        logger.info('Found %%d matches for event %%d, checking for player %%s',
+                    len(matches), event_id, player_name)
+
+        counts = {'matches_found': len(matches), 'detail_scraped': 0,
+                  'player_matches': 0, 'maps': 0, 'player_stats': 0}
+        for m in matches:
+            try:
+                detail = self.scrape_and_store_match_detail(
+                    m['match_id'], match_path=m.get('match_url', ''), force=force,
+                )
+                counts['maps'] += len(detail.get('maps', []))
+                counts['player_stats'] += len(detail.get('players', []))
+                counts['detail_scraped'] += 1
+
+                stats = self._db.get_stats_by_match(m['match_id'])
+                for stat in stats:
+                    if stat.get('player_id') == player_id:
+                        counts['player_matches'] += 1
+                        break
+            except Exception as exc:
+                logger.warning('Failed to scrape match %%d: %%s', m['match_id'], exc)
+
+        logger.info('Player %%s played %%d matches at event %%d',
+                    player_name, counts['player_matches'], event_id)
+        return counts
 
     def run_full_pipeline(self, force: bool = False,
                           max_matches: Optional[int] = None,

@@ -452,3 +452,55 @@ def parse_ranking_players(html: str) -> list[dict[str, Any]]:
     return players
 
 
+
+# ---------------------------------------------------------------------------
+# Event match list
+# ---------------------------------------------------------------------------
+
+def parse_event_match_list(html: str, event_id: int) -> list[dict[str, Any]]:
+    """Parse event detail page for match links.
+
+    Extracts all match IDs/URLs from an HLTV event page, along with
+    team names where they can be inferred from the page structure.
+
+    Returns list of dicts: match_id, match_url, event_id, team1_name, team2_name.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    matches: list[dict[str, Any]] = []
+    seen_ids: set[int] = set()
+
+    for a_tag in soup.find_all("a", href=re.compile(r"/matches/(\d+)/")):
+        href = a_tag.get("href", "")
+        m = re.search(r"/matches/(\d+)/", href)
+        match_id = int(m.group(1)) if m else None
+        if not match_id or match_id in seen_ids:
+            continue
+        seen_ids.add(match_id)
+
+        # Try to extract team names from the match link's context
+        team1_name: Optional[str] = None
+        team2_name: Optional[str] = None
+
+        # Strategy 1: inner div.team elements (event page match rows)
+        team_divs = a_tag.find_all("div", class_=lambda c: c and "team" in c.lower() if c else False)
+        if len(team_divs) >= 2:
+            team1_name = team_divs[0].get_text(strip=True) or None
+            team2_name = team_divs[1].get_text(strip=True) or None
+
+        # Strategy 2: img alt attributes (team logos)
+        if not team1_name and not team2_name:
+            imgs = a_tag.find_all("img")
+            alts = [img.get("alt", "") for img in imgs if img.get("alt")]
+            if len(alts) >= 2:
+                team1_name = alts[0]
+                team2_name = alts[1]
+
+        matches.append({
+            "match_id": match_id,
+            "match_url": href,
+            "event_id": event_id,
+            "team1_name": team1_name,
+            "team2_name": team2_name,
+        })
+
+    return matches
