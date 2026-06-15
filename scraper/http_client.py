@@ -55,11 +55,10 @@ class HltvHttpClient:
                 return html
             except Exception as exc:
                 if attempt < MAX_RETRIES:
-                    time.sleep(RETRY_BACKOFF ** attempt)
+                    time.sleep(RETRY_BACKOFF**attempt)
                 else:
                     raise RuntimeError(
-                        f"Failed to fetch {url} "
-                        f"after {MAX_RETRIES} attempts"
+                        f"Failed to fetch {url} " f"after {MAX_RETRIES} attempts"
                     ) from exc
 
         raise RuntimeError(f"Failed to fetch {url} — all attempts exhausted")

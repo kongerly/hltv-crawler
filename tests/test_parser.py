@@ -3,18 +3,17 @@
 from parser import (
     parse_event_match_list,
     parse_events_page,
+    parse_ranking_players,
     parse_results_page,
     parse_team_ranking_page,
-    parse_ranking_players,
 )
 from parser.parsers import parse_match_detail
-
 
 # ---------------------------------------------------------------------------
 # Sample HTML fragments (simulating HLTV structure)
 # ---------------------------------------------------------------------------
 
-SAMPLE_EVENTS_HTML = '''
+SAMPLE_EVENTS_HTML = """
 <div class="ongoing-event-holder">
   <a href="/events/1234/some-event/">
     Some Event $100,000
@@ -25,9 +24,9 @@ SAMPLE_EVENTS_HTML = '''
     Another Event
   </a>
 </div>
-'''
+"""
 
-SAMPLE_RESULTS_HTML = '''
+SAMPLE_RESULTS_HTML = """
 <div class="result-con">
   <a href="/matches/1001/faze-vs-navi/">
     <table>
@@ -41,9 +40,9 @@ SAMPLE_RESULTS_HTML = '''
     </table>
   </a>
 </div>
-'''
+"""
 
-SAMPLE_RANKING_HTML = '''
+SAMPLE_RANKING_HTML = """
 <div class="ranked-team">
   <span class="position">#1</span>
   <span class="name">FaZe</span>
@@ -54,9 +53,9 @@ SAMPLE_RANKING_HTML = '''
   <span class="name">NaVi</span>
   <a href="/team/456/navi/">NaVi</a>
 </div>
-'''
+"""
 
-SAMPLE_RANKING_PLAYERS_HTML = '''
+SAMPLE_RANKING_PLAYERS_HTML = """
 <div class="ranked-team">
   <a href="/team/123/faze/"></a>
   <table class="lineup">
@@ -69,12 +68,13 @@ SAMPLE_RANKING_PLAYERS_HTML = '''
     </tr>
   </table>
 </div>
-'''
+"""
 
 
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 class TestParseEvents:
     def test_parse_events_page(self):
@@ -140,13 +140,13 @@ class TestParseMatchDetail:
         assert result["players"] == []
 
     def test_parse_with_date(self):
-        html = '''<div class="date" data-unix="1700000000000"></div>'''
+        html = """<div class="date" data-unix="1700000000000"></div>"""
         result = parse_match_detail(html)
         assert result is not None
         assert "2023-11-14" in result.get("match_datetime", "")
 
     def test_parse_player_stats_with_swing(self):
-        html = '''
+        html = """
         <table class="totalstats">
           <tr><th>Player</th><th>K-D</th><th>+/-</th><th>Swing%</th><th>ADR</th><th>ADR-adj</th><th>KAST%</th><th>KAST-adj</th><th>Rating</th></tr>
           <tr>
@@ -175,7 +175,7 @@ class TestParseMatchDetail:
             <td>1.42</td>
           </tr>
         </table>
-        '''
+        """
         result = parse_match_detail(html)
         assert result is not None
         assert len(result["players"]) == 2
@@ -205,7 +205,7 @@ class TestParseMatchDetail:
 # Event match list
 # ---------------------------------------------------------------------------
 
-SAMPLE_EVENT_PAGE_HTML = '''
+SAMPLE_EVENT_PAGE_HTML = """
 <div class="event-page">
   <div class="event-info">
     <h1>IEM Cologne 2024</h1>
@@ -227,7 +227,7 @@ SAMPLE_EVENT_PAGE_HTML = '''
     </div>
   </div>
 </div>
-'''
+"""
 
 
 class TestParseEventMatchList:

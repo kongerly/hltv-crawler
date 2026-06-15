@@ -4,7 +4,8 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Optional
 
-from storage.schema import create_tables as _create_tables, migrate_schema as _migrate_schema
+from storage.schema import create_tables as _create_tables
+from storage.schema import migrate_schema as _migrate_schema
 
 
 class Database:
@@ -30,9 +31,13 @@ class Database:
     # Teams
     # -----------------------------------------------------------------------
 
-    def upsert_team(self, team_id: int, team_name: str,
-                    world_rank: Optional[int] = None,
-                    updated_at: Optional[str] = None) -> None:
+    def upsert_team(
+        self,
+        team_id: int,
+        team_name: str,
+        world_rank: Optional[int] = None,
+        updated_at: Optional[str] = None,
+    ) -> None:
         self._conn.execute(
             """INSERT INTO teams (team_id, team_name, world_rank, updated_at)
                VALUES (?, ?, ?, ?)
@@ -57,10 +62,14 @@ class Database:
     # Players
     # -----------------------------------------------------------------------
 
-    def upsert_player(self, player_id: int, player_name: str,
-                      nickname: Optional[str] = None,
-                      team_id: Optional[int] = None,
-                      updated_at: Optional[str] = None) -> None:
+    def upsert_player(
+        self,
+        player_id: int,
+        player_name: str,
+        nickname: Optional[str] = None,
+        team_id: Optional[int] = None,
+        updated_at: Optional[str] = None,
+    ) -> None:
         self._conn.execute(
             """INSERT INTO players (player_id, player_name, nickname, team_id, updated_at)
                VALUES (?, ?, ?, ?, ?)
@@ -91,9 +100,13 @@ class Database:
     # Events
     # -----------------------------------------------------------------------
 
-    def upsert_event(self, event_id: int, event_name: str,
-                     start_date: Optional[str] = None,
-                     end_date: Optional[str] = None) -> None:
+    def upsert_event(
+        self,
+        event_id: int,
+        event_name: str,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+    ) -> None:
         self._conn.execute(
             """INSERT INTO events (event_id, event_name, start_date, end_date)
                VALUES (?, ?, ?, ?)
@@ -118,15 +131,19 @@ class Database:
     # Matches
     # -----------------------------------------------------------------------
 
-    def upsert_match(self, match_id: int, event_id: Optional[int],
-                  event_name: Optional[str] = None,
-                  match_datetime: Optional[str] = None,
-                  team1_id: Optional[int] = None,
-                  team2_id: Optional[int] = None,
-                  team1_score: Optional[int] = None,
-                  team2_score: Optional[int] = None,
-                  best_of: Optional[int] = None,
-                  winner_team_id: Optional[int] = None) -> None:
+    def upsert_match(
+        self,
+        match_id: int,
+        event_id: Optional[int],
+        event_name: Optional[str] = None,
+        match_datetime: Optional[str] = None,
+        team1_id: Optional[int] = None,
+        team2_id: Optional[int] = None,
+        team1_score: Optional[int] = None,
+        team2_score: Optional[int] = None,
+        best_of: Optional[int] = None,
+        winner_team_id: Optional[int] = None,
+    ) -> None:
         self._conn.execute(
             """INSERT INTO matches
                (match_id, event_id, event_name, match_datetime,
@@ -143,11 +160,21 @@ class Database:
                    team2_score    = excluded.team2_score,
                    best_of        = excluded.best_of,
                    winner_team_id = excluded.winner_team_id""",
-            (match_id, event_id, event_name, match_datetime,
-             team1_id, team2_id, team1_score, team2_score,
-             best_of, winner_team_id),
+            (
+                match_id,
+                event_id,
+                event_name,
+                match_datetime,
+                team1_id,
+                team2_id,
+                team1_score,
+                team2_score,
+                best_of,
+                winner_team_id,
+            ),
         )
         self._conn.commit()
+
     def get_match(self, match_id: int) -> Optional[dict[str, Any]]:
         row = self._conn.execute(
             "SELECT * FROM matches WHERE match_id = ?", (match_id,)
@@ -162,11 +189,12 @@ class Database:
             )
         ]
 
-    def get_matches_by_date_range(self,
-                                   start_date: Optional[str] = None,
-                                   end_date: Optional[str] = None,
-                                   event_id: Optional[int] = None
-                                   ) -> list[dict[str, Any]]:
+    def get_matches_by_date_range(
+        self,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        event_id: Optional[int] = None,
+    ) -> list[dict[str, Any]]:
         """Get matches filtered by date range and optionally by event."""
         conditions: list[str] = []
         params: list[Any] = []
@@ -181,10 +209,7 @@ class Database:
             params.append(event_id)
         where = " AND ".join(conditions) if conditions else "1=1"
         sql = f"SELECT * FROM matches WHERE {where} ORDER BY match_datetime DESC"
-        return [
-            dict(r)
-            for r in self._conn.execute(sql, params)
-        ]
+        return [dict(r) for r in self._conn.execute(sql, params)]
 
     def get_maps_by_match_with_side(self, match_id: int) -> list[dict[str, Any]]:
         """Get maps for a match, extracting CT/T rounds from detail."""
@@ -199,14 +224,19 @@ class Database:
     # Maps
     # -----------------------------------------------------------------------
 
-    def upsert_map(self, map_id: int, match_id: int, map_name: str,
-                   team1_rounds: Optional[int] = None,
-                   team2_rounds: Optional[int] = None,
-                   team1_ct_rounds: Optional[int] = None,
-                   team1_t_rounds: Optional[int] = None,
-                   team2_ct_rounds: Optional[int] = None,
-                   team2_t_rounds: Optional[int] = None,
-                   winner_team_id: Optional[int] = None) -> None:
+    def upsert_map(
+        self,
+        map_id: int,
+        match_id: int,
+        map_name: str,
+        team1_rounds: Optional[int] = None,
+        team2_rounds: Optional[int] = None,
+        team1_ct_rounds: Optional[int] = None,
+        team1_t_rounds: Optional[int] = None,
+        team2_ct_rounds: Optional[int] = None,
+        team2_t_rounds: Optional[int] = None,
+        winner_team_id: Optional[int] = None,
+    ) -> None:
         self._conn.execute(
             """INSERT INTO maps
                (map_id, match_id, map_name,
@@ -225,11 +255,18 @@ class Database:
                    team2_ct_rounds = excluded.team2_ct_rounds,
                    team2_t_rounds  = excluded.team2_t_rounds,
                    winner_team_id = excluded.winner_team_id""",
-            (map_id, match_id, map_name,
-             team1_rounds, team2_rounds,
-             team1_ct_rounds, team1_t_rounds,
-             team2_ct_rounds, team2_t_rounds,
-             winner_team_id),
+            (
+                map_id,
+                match_id,
+                map_name,
+                team1_rounds,
+                team2_rounds,
+                team1_ct_rounds,
+                team1_t_rounds,
+                team2_ct_rounds,
+                team2_t_rounds,
+                winner_team_id,
+            ),
         )
         self._conn.commit()
 
@@ -245,23 +282,33 @@ class Database:
     # Player Match Stats
     # -----------------------------------------------------------------------
 
-    def upsert_player_match_stats(self, id: int, match_id: int,
-                                   map_id: Optional[int] = None,
-                                   player_id: Optional[int] = None,
-                                   team_id: Optional[int] = None,
-                                   rating: Optional[float] = None,
-                                   adr: Optional[float] = None,
-                                   swing: Optional[float] = None,
-                                   kast: Optional[float] = None,
-                                   kd_diff: Optional[int] = None,
-                                   kills: Optional[int] = None,
-                                   deaths: Optional[int] = None) -> None:
+    def upsert_player_match_stats(
+        self,
+        id: int,
+        match_id: int,
+        map_id: Optional[int] = None,
+        player_id: Optional[int] = None,
+        team_id: Optional[int] = None,
+        rating: Optional[float] = None,
+        adr: Optional[float] = None,
+        swing: Optional[float] = None,
+        kast: Optional[float] = None,
+        kd_diff: Optional[int] = None,
+        kills: Optional[int] = None,
+        deaths: Optional[int] = None,
+    ) -> None:
         # Use -1 for missing player_id to avoid FK constraint failure
         actual_player_id = player_id if player_id is not None else -1
         # Ensure player row exists FIRST (for FK constraint)
         self._conn.execute(
             "INSERT OR IGNORE INTO players (player_id, player_name, nickname) VALUES (?, ?, ?)",
-            (actual_player_id, 'Player_{}'.format(actual_player_id) if actual_player_id == -1 else 'Unknown Player', None),
+            (
+                actual_player_id,
+                "Player_{}".format(actual_player_id)
+                if actual_player_id == -1
+                else "Unknown Player",
+                None,
+            ),
         )
         self._conn.execute(
             """INSERT INTO player_match_stats
@@ -280,8 +327,20 @@ class Database:
                    kd_diff    = excluded.kd_diff,
                    kills      = excluded.kills,
                    deaths     = excluded.deaths""",
-            (id, match_id, map_id, actual_player_id, team_id,
-             rating, adr, swing, kast, kd_diff, kills, deaths),
+            (
+                id,
+                match_id,
+                map_id,
+                actual_player_id,
+                team_id,
+                rating,
+                adr,
+                swing,
+                kast,
+                kd_diff,
+                kills,
+                deaths,
+            ),
         )
         self._conn.commit()
 

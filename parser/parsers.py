@@ -9,10 +9,10 @@ from typing import Any, Optional
 
 from bs4 import BeautifulSoup, Tag
 
-
 # ---------------------------------------------------------------------------
 # Events
 # ---------------------------------------------------------------------------
+
 
 def parse_events_page(html: str) -> list[dict[str, Any]]:
     """Parse the /events page, return list of event dicts."""
@@ -31,8 +31,9 @@ def parse_events_page(html: str) -> list[dict[str, Any]]:
     return events
 
 
-
-def _parse_event_date(date_text: str, event_name: str) -> tuple[Optional[str], Optional[str]]:
+def _parse_event_date(
+    date_text: str, event_name: str
+) -> tuple[Optional[str], Optional[str]]:
     if not date_text:
         return None, None
     year_match = re.search(r"\b(20\d{2})\b", event_name)
@@ -57,7 +58,9 @@ def _parse_event_date(date_text: str, event_name: str) -> tuple[Optional[str], O
             end_date = end_dt.strftime("%Y-%m-%d")
         except ValueError:
             try:
-                end_dt = datetime.strptime(f"{start_dt.month} {end_str} {year}", "%m %d %Y")
+                end_dt = datetime.strptime(
+                    f"{start_dt.month} {end_str} {year}", "%m %d %Y"
+                )
                 end_date = end_dt.strftime("%Y-%m-%d")
             except ValueError:
                 pass
@@ -84,17 +87,26 @@ def _parse_event(container_or_link, seen_ids, events):
         if idx > 0:
             event_name = event_name[:idx].strip()
     date_text = ""
-    date_match = re.search(r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}(st|nd|rd|th)?", full_text)
+    date_match = re.search(
+        r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}(st|nd|rd|th)?",
+        full_text,
+    )
     if date_match:
         s = date_match.start()
-        date_text = full_text[s:].split("$")[0].split("Teams")[0].split("Prize")[0].strip()
+        date_text = (
+            full_text[s:].split("$")[0].split("Teams")[0].split("Prize")[0].strip()
+        )
     start_date, end_date = _parse_event_date(date_text, event_name)
-    events.append({
-        "event_id": event_id,
-        "event_name": event_name,
-        "start_date": start_date,
-        "end_date": end_date,
-    })
+    events.append(
+        {
+            "event_id": event_id,
+            "event_name": event_name,
+            "start_date": start_date,
+            "end_date": end_date,
+        }
+    )
+
+
 def parse_results_page(html: str) -> list[dict[str, Any]]:
     """Parse the /results page, return list of match dicts.
 
@@ -128,8 +140,12 @@ def _parse_result_con(row: Tag) -> Optional[dict[str, Any]]:
         match_id = int(m.group(1)) if m else None
 
         team_cells = row.find_all("td", class_="team-cell")
-        team1_div = team_cells[0].find("div", class_="team") if len(team_cells) > 0 else None
-        team2_div = team_cells[1].find("div", class_="team") if len(team_cells) > 1 else None
+        team1_div = (
+            team_cells[0].find("div", class_="team") if len(team_cells) > 0 else None
+        )
+        team2_div = (
+            team_cells[1].find("div", class_="team") if len(team_cells) > 1 else None
+        )
         team1_name = team1_div.get_text(strip=True) if team1_div else None
         team2_name = team2_div.get_text(strip=True) if team2_div else None
 
@@ -158,7 +174,9 @@ def _parse_result_con(row: Tag) -> Optional[dict[str, Any]]:
         map_text_el = row.find("div", class_="map-text")
         best_of = None
         if map_text_el:
-            bo_match = re.search(r"bo(\d)", map_text_el.get_text(strip=True), re.IGNORECASE)
+            bo_match = re.search(
+                r"bo(\d)", map_text_el.get_text(strip=True), re.IGNORECASE
+            )
             if bo_match:
                 best_of = int(bo_match.group(1))
 
@@ -187,6 +205,7 @@ def _parse_result_con(row: Tag) -> Optional[dict[str, Any]]:
 # ---------------------------------------------------------------------------
 # Match detail page (maps + player stats)
 # ---------------------------------------------------------------------------
+
 
 def parse_match_detail(html: str) -> dict[str, Any]:
     """Parse a match detail page for maps and player stats.
@@ -262,16 +281,18 @@ def parse_match_detail(html: str) -> dict[str, Any]:
             elif team2_rounds > team1_rounds:
                 winner = 2
 
-        result["maps"].append({
-            "map_name": map_name,
-            "team1_rounds": team1_rounds,
-            "team2_rounds": team2_rounds,
-            "team1_ct_rounds": team1_ct_rounds,
-            "team1_t_rounds": team1_t_rounds,
-            "team2_ct_rounds": team2_ct_rounds,
-            "team2_t_rounds": team2_t_rounds,
-            "winner_team_id": winner,
-        })
+        result["maps"].append(
+            {
+                "map_name": map_name,
+                "team1_rounds": team1_rounds,
+                "team2_rounds": team2_rounds,
+                "team1_ct_rounds": team1_ct_rounds,
+                "team1_t_rounds": team1_t_rounds,
+                "team2_ct_rounds": team2_ct_rounds,
+                "team2_t_rounds": team2_t_rounds,
+                "winner_team_id": winner,
+            }
+        )
 
     # --- Player stats via table.totalstats (overall only = first 2 tables) ---
     overall_tables = soup.find_all("table", class_="totalstats")[:2]
@@ -368,6 +389,7 @@ def _parse_player_stat_row_new(row: Tag, team_id: int) -> Optional[dict[str, Any
     except (AttributeError, ValueError, IndexError):
         return None
 
+
 def parse_team_ranking_page(html: str) -> list[dict[str, Any]]:
     """Parse the /ranking/teams page.
 
@@ -425,6 +447,7 @@ def _parse_ranked_team(rt: Tag) -> Optional[dict[str, Any]]:
 # Team detail page (players)
 # ---------------------------------------------------------------------------
 
+
 def parse_ranking_players(html: str) -> list[dict[str, Any]]:
     """Parse player rosters from the /ranking/teams page.
 
@@ -476,20 +499,22 @@ def parse_ranking_players(html: str) -> list[dict[str, Any]]:
             # player_name = nickname (game ID), nickname field stores the real name
             player_name = nickname or real_name or f"Player_{pid}"
 
-            players.append({
-                "player_id": pid,
-                "player_name": player_name,
-                "nickname": real_name,
-                "team_id": team_id,
-            })
+            players.append(
+                {
+                    "player_id": pid,
+                    "player_name": player_name,
+                    "nickname": real_name,
+                    "team_id": team_id,
+                }
+            )
 
     return players
-
 
 
 # ---------------------------------------------------------------------------
 # Event match list
 # ---------------------------------------------------------------------------
+
 
 def parse_event_match_list(html: str, event_id: int) -> list[dict[str, Any]]:
     """Parse event detail page for match links.
@@ -516,7 +541,9 @@ def parse_event_match_list(html: str, event_id: int) -> list[dict[str, Any]]:
         team2_name: Optional[str] = None
 
         # Strategy 1: inner div.team elements (event page match rows)
-        team_divs = a_tag.find_all("div", class_=lambda c: c and "team" in c.lower() if c else False)
+        team_divs = a_tag.find_all(
+            "div", class_=lambda c: c and "team" in c.lower() if c else False
+        )
         if len(team_divs) >= 2:
             team1_name = team_divs[0].get_text(strip=True) or None
             team2_name = team_divs[1].get_text(strip=True) or None
@@ -529,12 +556,14 @@ def parse_event_match_list(html: str, event_id: int) -> list[dict[str, Any]]:
                 team1_name = alts[0]
                 team2_name = alts[1]
 
-        matches.append({
-            "match_id": match_id,
-            "match_url": href,
-            "event_id": event_id,
-            "team1_name": team1_name,
-            "team2_name": team2_name,
-        })
+        matches.append(
+            {
+                "match_id": match_id,
+                "match_url": href,
+                "event_id": event_id,
+                "team1_name": team1_name,
+                "team2_name": team2_name,
+            }
+        )
 
     return matches

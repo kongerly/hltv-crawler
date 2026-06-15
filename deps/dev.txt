@@ -1,2 +1,4 @@
 # Dev dependencies for hltv-crawler
 pytest>=7.0
+ruff>=0.4.10
+pre-commit>=3.7.0

@@ -40,33 +40,70 @@ logger = logging.getLogger(__name__)
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="HLTV CS2 match data crawler"
+    parser = argparse.ArgumentParser(description="HLTV CS2 match data crawler")
+    parser.add_argument(
+        "--force", action="store_true", help="Ignore disk cache and re-fetch all pages"
     )
-    parser.add_argument("--force", action="store_true",
-                        help="Ignore disk cache and re-fetch all pages")
-    parser.add_argument("--max-matches", type=int, default=None,
-                        help="Max match details to scrape (None = all)")
-    parser.add_argument("--max-pages", type=int, default=20,
-                        help="Max result pages to scrape (50 matches per page)")
-    parser.add_argument("--start-date", type=str, default=None,
-                        help="Only matches on or after this date (YYYY-MM-DD)")
-    parser.add_argument("--end-date", type=str, default=None,
-                        help="Only matches on or before this date (YYYY-MM-DD)")
-    parser.add_argument("--event", type=str, default=None,
-                        help="Scrape event by name (substring match, resolves to ID)")
-    parser.add_argument("--event-id", type=int, default=None,
-                        help="Scrape a specific event by ID")
-    parser.add_argument("--resume", action="store_true",
-                        help="Resume from last saved progress")
-    parser.add_argument("--team-id", type=int, default=None,
-                        help="Scrape a specific team at an event (requires --event-id)")
-    parser.add_argument("--player-id", type=int, default=None,
-                        help="Scrape a specific player at an event (requires --event-id)")
-    parser.add_argument("--team", type=str, default=None,
-                        help="Scrape team at event by name (requires --event/--event-id)")
-    parser.add_argument("--player", type=str, default=None,
-                        help="Scrape player at event by name (requires --event/--event-id)")
+    parser.add_argument(
+        "--max-matches",
+        type=int,
+        default=None,
+        help="Max match details to scrape (None = all)",
+    )
+    parser.add_argument(
+        "--max-pages",
+        type=int,
+        default=20,
+        help="Max result pages to scrape (50 matches per page)",
+    )
+    parser.add_argument(
+        "--start-date",
+        type=str,
+        default=None,
+        help="Only matches on or after this date (YYYY-MM-DD)",
+    )
+    parser.add_argument(
+        "--end-date",
+        type=str,
+        default=None,
+        help="Only matches on or before this date (YYYY-MM-DD)",
+    )
+    parser.add_argument(
+        "--event",
+        type=str,
+        default=None,
+        help="Scrape event by name (substring match, resolves to ID)",
+    )
+    parser.add_argument(
+        "--event-id", type=int, default=None, help="Scrape a specific event by ID"
+    )
+    parser.add_argument(
+        "--resume", action="store_true", help="Resume from last saved progress"
+    )
+    parser.add_argument(
+        "--team-id",
+        type=int,
+        default=None,
+        help="Scrape a specific team at an event (requires --event-id)",
+    )
+    parser.add_argument(
+        "--player-id",
+        type=int,
+        default=None,
+        help="Scrape a specific player at an event (requires --event-id)",
+    )
+    parser.add_argument(
+        "--team",
+        type=str,
+        default=None,
+        help="Scrape team at event by name (requires --event/--event-id)",
+    )
+    parser.add_argument(
+        "--player",
+        type=str,
+        default=None,
+        help="Scrape player at event by name (requires --event/--event-id)",
+    )
     return parser.parse_args()
 
 
@@ -88,7 +125,8 @@ def main() -> None:
                 if event_id is None:
                     logger.error(
                         "Cannot resolve event '%s'. "
-                        "Check logs above for matching events or use --event-id.", args.event
+                        "Check logs above for matching events or use --event-id.",
+                        args.event,
                     )
                     sys.exit(1)
                 logger.info("Resolved event name '%s' -> ID %d", args.event, event_id)
@@ -107,7 +145,9 @@ def main() -> None:
                 if player_id is None:
                     logger.error("Cannot find player matching '%s'", args.player)
                     sys.exit(1)
-                logger.info("Resolved player name '%s' -> ID %d", args.player, player_id)
+                logger.info(
+                    "Resolved player name '%s' -> ID %d", args.player, player_id
+                )
 
             # --- 1) Player at event mode ---
             if player_id is not None:
